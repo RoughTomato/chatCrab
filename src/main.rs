@@ -1,81 +1,11 @@
 extern crate clap;
 use clap::{Arg, App};
-use std::io;
-use std::thread;
-use std::net::{TcpListener, TcpStream, Shutdown};
-use std::io::{Read, Write};
-use std::str::from_utf8;
 
-fn handle_server(mut stream: TcpStream) {
-    let mut data = [0 as u8; 50];
-    
-    while match stream.read(&mut data) {
-        Ok(_) => {
-            stream.write(b"Ok, thank you for sending data!").unwrap();
-            true
-        },
-        Err(_) => {
-            println!("Error: terminating connection with {}", stream.peer_addr().unwrap());
-            stream.shutdown(Shutdown::Both).unwrap();
-            false
-        }
-    } {}
-}
+mod server;
+pub use server::crabserver;
 
-fn run_server() {
-    let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
-
-    println!("Server listening on port 3333");
-
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                println!("New connection: {}", stream.peer_addr().unwrap());
-                thread::spawn(move || {
-                    handle_server(stream)
-                });
-            },
-            Err(e) => {
-                println!("Error: {}", e);
-            }
-        }
-    }
-
-    drop(listener);
-}
-
-fn client_connect(connection_string: String) {
-    match TcpStream::connect(connection_string) {
-        Ok(mut stream) => {
-            let mut msg = String::new();
-
-            println!("Connected");
-
-            while msg != "q" {
-            
-                io::stdin()
-                .read_line(&mut msg)
-                .expect("Failed to read line");
-                stream.write(msg.as_bytes()).unwrap();
-
-                let mut data = [0 as u8; 50];
-                match stream.read(&mut data) {
-                    Ok(_) => {
-                        let text = from_utf8(&data).unwrap();
-                        println!("{}", text);
-                    },
-                    Err(e) => {
-                        println!("Error! failed to receive data: {}", e);
-                    }
-                }
-            }
-        },
-        Err(e) => {
-            println!("Failed to connect: {}", e);
-        }
-    }
-    println!("Connection terminated");
-}
+mod client;
+pub use client::crabclient;
 
 fn main() {
     let matches = App::new("chatCrab")
@@ -100,10 +30,10 @@ fn main() {
 
     if server && !client {
         println!("Running chatCrab in server mode");
-        run_server();
+        crabserver::run_server("127.0.0.1:3333")
     } else if client && !server {
-        let client_data = matches.value_of("client").unwrap_or("127.0.0.1:3333");
-        client_connect(client_data.to_string());
+        let _client_data = matches.value_of("client").unwrap_or("127.0.0.1:3333");
+
     }
 
 }
