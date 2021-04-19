@@ -33,7 +33,7 @@ fn main() {
         crabserver::run_server("127.0.0.1:3333")
     } else if client && !server {
         let _client_data = matches.value_of("client").unwrap_or("127.0.0.1:3333");
-
+        fail;
     }
 
 }
